@@ -142,6 +142,30 @@ fun BarraReproduccion(
                             }
                         )
                     }
+                    TextButton(onClick = {
+                        controller?.let {
+                            it.repeatMode = when (it.repeatMode) {
+                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                else -> Player.REPEAT_MODE_OFF
+                            }
+                        }
+                    }) {
+                        Text(
+                            when (repetir) {
+                                Player.REPEAT_MODE_ALL -> "Repetir: todo"
+                                Player.REPEAT_MODE_ONE -> "Repetir: una"
+                                else -> "Repetir: no"
+                            }
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    BotonTemporizador()
                 }
             }
         }

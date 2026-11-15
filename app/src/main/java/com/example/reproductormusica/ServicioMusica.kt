@@ -1,14 +1,22 @@
 package com.example.reproductormusica
 
+import android.content.Intent
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
-class `ServicioMusica` : MediaSessionService() {
+class ServicioMusica : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
+
+    // Las tareas del servicio (como el temporizador) viven aquí
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
         super.onCreate()
@@ -19,25 +27,27 @@ class `ServicioMusica` : MediaSessionService() {
                     .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
                     .setUsage(C.USAGE_MEDIA)
                     .build(),
-                true // gestiona el audio focus (llamadas, otras apps)
+                true
             )
-            .setHandleAudioBecomingNoisy(true) // pausa al desconectar auriculares
+            .setHandleAudioBecomingNoisy(true)
+            .setWakeMode(C.WAKE_MODE_LOCAL) // procesador despierto mientras suena
             .build()
 
         mediaSession = MediaSession.Builder(this, player).build()
+        Temporizador.vincular(player, scope)
     }
 
-    // Quien se conecte (tu pantalla, Bluetooth, notificación) recibe esta sesión
     override fun onGetSession(
         controllerInfo: MediaSession.ControllerInfo
     ): MediaSession? = mediaSession
 
-    // Si el usuario cierra la app deslizándola de recientes, detenemos la música
-    override fun onTaskRemoved(rootIntent: android.content.Intent?) {
+    override fun onTaskRemoved(rootIntent: Intent?) {
         pauseAllPlayersAndStopSelf()
     }
 
     override fun onDestroy() {
+        Temporizador.desvincular()
+        scope.cancel()
         mediaSession?.run {
             player.release()
             release()
