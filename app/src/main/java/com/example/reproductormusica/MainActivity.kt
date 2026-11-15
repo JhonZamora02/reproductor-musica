@@ -68,6 +68,10 @@ fun AppMusica() {
         .collectAsState(initial = emptyList<ListaConConteo>())
 
     var pestana by rememberSaveable { mutableStateOf(0) }
+    var mostrarLetra by remember { mutableStateOf(false) }
+
+    // Si cambias de pestaña, se cierra la pantalla de letra
+    LaunchedEffect(pestana) { mostrarLetra = false }
 
     var tienePermiso by remember {
         mutableStateOf(
@@ -150,7 +154,7 @@ fun AppMusica() {
         }
     }
 
-    // Lo que usan las dos pestañas para reproducir una cola
+    // Lo que usan las pestañas para reproducir una cola
     val alReproducir: (List<Song>, Int) -> Unit = { cola, indice ->
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
@@ -174,7 +178,8 @@ fun AppMusica() {
                             cancion = cancion,
                             sonando = sonando,
                             aleatorio = aleatorio,
-                            repetir = repetir
+                            repetir = repetir,
+                            onLetra = { mostrarLetra = true }
                         )
                     }
                     NavigationBar {
@@ -213,6 +218,15 @@ fun AppMusica() {
                         onClick = { lanzador.launch(permisoAudio) },
                         modifier = Modifier.padding(top = 16.dp)
                     ) { Text("Dar permiso") }
+                }
+            } else if (mostrarLetra) {
+                actual?.let { cancion ->
+                    PantallaLetra(
+                        cancion = cancion,
+                        controller = controller,
+                        sonando = sonando,
+                        onCerrar = { mostrarLetra = false }
+                    )
                 }
             } else if (pestana == 0) {
                 PantallaCanciones(

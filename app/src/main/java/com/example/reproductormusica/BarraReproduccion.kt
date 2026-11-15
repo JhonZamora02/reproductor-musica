@@ -35,7 +35,8 @@ fun BarraReproduccion(
     cancion: Song,
     sonando: Boolean,
     aleatorio: Boolean,
-    repetir: Int
+    repetir: Int,
+    onLetra: () -> Unit
 ) {
     var expandida by rememberSaveable { mutableStateOf(false) }
     var posicion by remember { mutableStateOf(0L) }
@@ -163,8 +164,9 @@ fun BarraReproduccion(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
+                    TextButton(onClick = onLetra) { Text("Letra") }
                     BotonTemporizador()
                 }
             }
