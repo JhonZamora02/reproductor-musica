@@ -190,6 +190,12 @@ fun AppMusica() {
                             icon = { Text("☰") },
                             label = { Text("Listas") }
                         )
+                        NavigationBarItem(
+                            selected = pestana == 2,
+                            onClick = { pestana = 2 },
+                            icon = { Text("≋") },
+                            label = { Text("Sonido") }
+                        )
                     }
                 }
             }
@@ -218,13 +224,15 @@ fun AppMusica() {
                         scope.launch { dao.agregarCancion(listaId, cancion.id) }
                     }
                 )
-            } else {
+            } else if (pestana == 1) {
                 PantallaListas(
                     dao = dao,
                     listas = listas,
                     canciones = canciones,
                     onReproducir = alReproducir
                 )
+            } else {
+                PantallaEcualizador()
             }
         }
     }

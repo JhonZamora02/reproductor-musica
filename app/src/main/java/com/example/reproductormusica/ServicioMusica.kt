@@ -14,8 +14,6 @@ import kotlinx.coroutines.cancel
 class ServicioMusica : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
-
-    // Las tareas del servicio (como el temporizador) viven aquí
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     override fun onCreate() {
@@ -30,11 +28,12 @@ class ServicioMusica : MediaSessionService() {
                 true
             )
             .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_LOCAL) // procesador despierto mientras suena
+            .setWakeMode(C.WAKE_MODE_LOCAL)
             .build()
 
         mediaSession = MediaSession.Builder(this, player).build()
         Temporizador.vincular(player, scope)
+        Ecualizador.vincular(this, player)
     }
 
     override fun onGetSession(
@@ -46,6 +45,7 @@ class ServicioMusica : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        Ecualizador.desvincular()
         Temporizador.desvincular()
         scope.cancel()
         mediaSession?.run {
