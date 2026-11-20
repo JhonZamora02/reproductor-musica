@@ -1,4 +1,4 @@
-package com.example.reproductormusica
+package com.zajesoft.musicplayer
 
 import android.Manifest
 import android.content.ComponentName
@@ -41,7 +41,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.example.reproductormusica.ui.theme.ReproductorMusicaTheme
+import com.zajesoft.musicplayer.ui.theme.ReproductorMusicaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

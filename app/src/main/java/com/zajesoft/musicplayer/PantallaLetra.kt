@@ -1,4 +1,4 @@
-package com.example.reproductormusica
+package com.zajesoft.musicplayer
 
 import android.widget.Toast
 import androidx.activity.ComponentActivity

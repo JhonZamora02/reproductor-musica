@@ -1,4 +1,4 @@
-package com.example.reproductormusica
+package com.zajesoft.musicplayer
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement

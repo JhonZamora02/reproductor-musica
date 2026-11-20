@@ -1,4 +1,4 @@
-package com.example.reproductormusica.ui.theme
+package com.zajesoft.musicplayer.ui.theme
 
 import android.os.Build
 import androidx.activity.ComponentActivity
@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.example.reproductormusica.ModoTema
+import com.zajesoft.musicplayer.ModoTema
 
 // Paleta inspirada en el logo: azul cian y violeta
 private val EsquemaClaro = lightColorScheme(

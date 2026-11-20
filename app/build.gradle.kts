@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.example.reproductormusica"
+    namespace = "com.zajesoft.musicplayer"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.example.reproductormusica"
+        applicationId = "com.zajesoft.musicplayer"
         minSdk = 23
         targetSdk = 37
         versionCode = 1

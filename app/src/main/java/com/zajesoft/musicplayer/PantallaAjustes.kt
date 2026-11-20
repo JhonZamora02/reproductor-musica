@@ -1,4 +1,4 @@
-package com.example.reproductormusica
+package com.zajesoft.musicplayer
 
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
@@ -116,6 +116,7 @@ fun PantallaAjustes() {
 
         Seccion("Acerca de")
         Text("Reproductor de música offline")
+        Text("ZAJE Soft", style = MaterialTheme.typography.bodySmall)
         if (version.isNotEmpty()) {
             Text("Versión $version", style = MaterialTheme.typography.bodySmall)
         }

@@ -1,4 +1,4 @@
-package com.example.reproductormusica
+package com.zajesoft.musicplayer
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.clickable

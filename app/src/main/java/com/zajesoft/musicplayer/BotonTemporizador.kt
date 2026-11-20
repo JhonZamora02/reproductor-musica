@@ -1,4 +1,4 @@
-package com.example.reproductormusica
+package com.zajesoft.musicplayer
 
 import android.os.SystemClock
 import androidx.activity.ComponentActivity

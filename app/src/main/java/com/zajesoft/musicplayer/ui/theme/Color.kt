@@ -1,4 +1,4 @@
-package com.example.reproductormusica.ui.theme
+package com.zajesoft.musicplayer.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
