@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -48,9 +49,13 @@ import kotlinx.coroutines.withContext
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Ajustes.cargar(this)
         enableEdgeToEdge()
         setContent {
-            ReproductorMusicaTheme {
+            ReproductorMusicaTheme(
+                modo = Ajustes.modoTema,
+                dinamico = Ajustes.colorDinamico
+            ) {
                 AppMusica()
             }
         }
@@ -81,6 +86,9 @@ fun AppMusica() {
     }
     var canciones by remember { mutableStateOf<List<Song>>(emptyList()) }
     var cargado by remember { mutableStateOf(false) }
+
+    // Cada vez que sube este número, se vuelve a leer la biblioteca
+    var recarga by remember { mutableStateOf(0) }
 
     var controller by remember { mutableStateOf<MediaController?>(null) }
     var actual by remember { mutableStateOf<Song?>(null) }
@@ -147,9 +155,13 @@ fun AppMusica() {
         ActivityResultContracts.RequestPermission()
     ) { }
 
-    LaunchedEffect(tienePermiso) {
+    // Se relee la biblioteca al dar permiso, al pulsar Actualizar o al cambiar el filtro de duración
+    val minimoSeg = Ajustes.duracionMinimaSeg
+    LaunchedEffect(tienePermiso, recarga, minimoSeg) {
         if (tienePermiso) {
-            canciones = withContext(Dispatchers.IO) { cargarCanciones(context) }
+            canciones = withContext(Dispatchers.IO) {
+                cargarCanciones(context, minimoSeg * 1000L)
+            }
             cargado = true
         }
     }
@@ -186,20 +198,26 @@ fun AppMusica() {
                         NavigationBarItem(
                             selected = pestana == 0,
                             onClick = { pestana = 0 },
-                            icon = { Text("♫") },
+                            icon = { Icon(Iconos.Nota, contentDescription = null) },
                             label = { Text("Canciones") }
                         )
                         NavigationBarItem(
                             selected = pestana == 1,
                             onClick = { pestana = 1 },
-                            icon = { Text("☰") },
+                            icon = { Icon(Iconos.Lista, contentDescription = null) },
                             label = { Text("Listas") }
                         )
                         NavigationBarItem(
                             selected = pestana == 2,
                             onClick = { pestana = 2 },
-                            icon = { Text("≋") },
+                            icon = { Icon(Iconos.Ecualizador, contentDescription = null) },
                             label = { Text("Sonido") }
+                        )
+                        NavigationBarItem(
+                            selected = pestana == 3,
+                            onClick = { pestana = 3 },
+                            icon = { Icon(Iconos.Opciones, contentDescription = null) },
+                            label = { Text("Ajustes") }
                         )
                     }
                 }
@@ -236,7 +254,8 @@ fun AppMusica() {
                     onReproducir = alReproducir,
                     onAgregarALista = { cancion, listaId ->
                         scope.launch { dao.agregarCancion(listaId, cancion.id) }
-                    }
+                    },
+                    onActualizar = { recarga++ }
                 )
             } else if (pestana == 1) {
                 PantallaListas(
@@ -245,8 +264,10 @@ fun AppMusica() {
                     canciones = canciones,
                     onReproducir = alReproducir
                 )
-            } else {
+            } else if (pestana == 2) {
                 PantallaEcualizador()
+            } else {
+                PantallaAjustes()
             }
         }
     }

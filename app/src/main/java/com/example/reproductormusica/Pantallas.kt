@@ -15,6 +15,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -29,16 +31,30 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import java.text.Normalizer
+
+// ---------- Utilidades ----------
+
+private val regexAcentos = Regex("\\p{M}+")
+
+// Minúsculas y sin tildes, para que "cancion" encuentre "Canción"
+fun normalizar(texto: String): String =
+    Normalizer.normalize(texto, Normalizer.Form.NFD)
+        .replace(regexAcentos, "")
+        .lowercase()
 
 // ---------- Componentes reutilizables ----------
 
 @Composable
 fun FilaCancion(
     cancion: Song,
-    textoAccion: String,
+    icono: ImageVector,
+    descripcionAccion: String,
     onClick: () -> Unit,
     onAccion: () -> Unit
 ) {
@@ -46,10 +62,13 @@ fun FilaCancion(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() }
-            .padding(start = 16.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+            .padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        Caratula(cancion, 48.dp)
+        Column(
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp)
+        ) {
             Text(cancion.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
             Text(
                 "${cancion.artist} · ${formatearDuracion(cancion.durationMs)}",
@@ -57,7 +76,9 @@ fun FilaCancion(
                 maxLines = 1
             )
         }
-        TextButton(onClick = onAccion) { Text(textoAccion) }
+        IconButton(onClick = onAccion) {
+            Icon(imageVector = icono, contentDescription = descripcionAccion)
+        }
     }
 }
 
@@ -97,28 +118,79 @@ fun PantallaCanciones(
     cargado: Boolean,
     listas: List<ListaConConteo>,
     onReproducir: (List<Song>, Int) -> Unit,
-    onAgregarALista: (Song, Long) -> Unit
+    onAgregarALista: (Song, Long) -> Unit,
+    onActualizar: () -> Unit
 ) {
     val context = LocalContext.current
+    val foco = LocalFocusManager.current
     var cancionParaAgregar by remember { mutableStateOf<Song?>(null) }
+    var busqueda by rememberSaveable { mutableStateOf("") }
 
-    if (cargado && canciones.isEmpty()) {
-        Text("No se encontraron canciones.", modifier = Modifier.padding(24.dp))
-    } else {
-        Column(modifier = Modifier.fillMaxSize()) {
+    // Texto normalizado de cada canción, calculado una sola vez
+    val indice = remember(canciones) {
+        canciones.map { it to normalizar("${it.title} ${it.artist}") }
+    }
+    val filtradas = remember(indice, busqueda) {
+        val q = normalizar(busqueda.trim())
+        if (q.isEmpty()) canciones else indice.filter { it.second.contains(q) }.map { it.first }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
-                "${canciones.size} canciones",
+                if (busqueda.isBlank()) "${canciones.size} canciones"
+                else "${filtradas.size} de ${canciones.size}",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.weight(1f)
             )
-            LazyColumn {
-                itemsIndexed(canciones, key = { _, c -> c.id }) { indice, cancion ->
-                    FilaCancion(
-                        cancion = cancion,
-                        textoAccion = "+ Lista",
-                        onClick = { onReproducir(canciones, indice) },
-                        onAccion = { cancionParaAgregar = cancion }
-                    )
+            IconButton(onClick = onActualizar) {
+                Icon(Iconos.Actualizar, contentDescription = "Actualizar biblioteca")
+            }
+        }
+
+        OutlinedTextField(
+            value = busqueda,
+            onValueChange = { busqueda = it },
+            singleLine = true,
+            placeholder = { Text("Buscar canción o artista") },
+            leadingIcon = { Icon(Iconos.Buscar, contentDescription = null) },
+            trailingIcon = {
+                if (busqueda.isNotEmpty()) {
+                    IconButton(onClick = { busqueda = "" }) {
+                        Icon(Iconos.Cerrar, contentDescription = "Borrar búsqueda")
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)
+        )
+
+        when {
+            cargado && canciones.isEmpty() -> {
+                Text(
+                    "No se encontraron canciones. Copia música al teléfono y pulsa Actualizar.",
+                    modifier = Modifier.padding(24.dp)
+                )
+            }
+            filtradas.isEmpty() && busqueda.isNotBlank() -> {
+                Text("Sin resultados.", modifier = Modifier.padding(24.dp))
+            }
+            else -> {
+                LazyColumn {
+                    itemsIndexed(filtradas, key = { _, c -> c.id }) { posicion, cancion ->
+                        FilaCancion(
+                            cancion = cancion,
+                            icono = Iconos.Agregar,
+                            descripcionAccion = "Añadir a una lista",
+                            onClick = {
+                                foco.clearFocus()
+                                onReproducir(filtradas, posicion)
+                            },
+                            onAccion = { cancionParaAgregar = cancion }
+                        )
+                    }
                 }
             }
         }
@@ -278,16 +350,17 @@ fun DetalleLista(
 
         if (cola.isEmpty()) {
             Text(
-                "Esta lista está vacía. Añade canciones desde la pestaña Canciones con el botón \"+ Lista\".",
+                "Esta lista está vacía. Añade canciones desde la pestaña Canciones con el botón +.",
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
         } else {
             LazyColumn {
-                itemsIndexed(cola, key = { _, c -> c.id }) { indice, cancion ->
+                itemsIndexed(cola, key = { _, c -> c.id }) { posicion, cancion ->
                     FilaCancion(
                         cancion = cancion,
-                        textoAccion = "Quitar",
-                        onClick = { onReproducir(cola, indice) },
+                        icono = Iconos.Cerrar,
+                        descripcionAccion = "Quitar de la lista",
+                        onClick = { onReproducir(cola, posicion) },
                         onAccion = {
                             scope.launch { dao.quitarCancion(lista.id, cancion.id) }
                         }

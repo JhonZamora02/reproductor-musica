@@ -1,12 +1,16 @@
 package com.example.reproductormusica
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -61,13 +65,28 @@ fun BarraReproduccion(
     }
 
     val maximo = duracion.coerceAtLeast(1L).toFloat()
+    val activo = MaterialTheme.colorScheme.primary
+    val apagado = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+
+    val alternarPlay: () -> Unit = {
+        controller?.let { if (it.isPlaying) it.pause() else it.play() }
+    }
 
     Surface(tonalElevation = 3.dp, modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(modifier = Modifier.fillMaxWidth()) {
 
-            // Parte compacta
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
+            // ----- Parte compacta: tocar en cualquier punto despliega o contrae -----
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expandida = !expandida }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Caratula(cancion, 48.dp)
+                Column(
+                    modifier = Modifier.weight(1f).padding(horizontal = 12.dp)
+                ) {
                     Text(cancion.title, maxLines = 1)
                     Text(
                         cancion.artist,
@@ -75,99 +94,109 @@ fun BarraReproduccion(
                         maxLines = 1
                     )
                 }
-                Button(onClick = {
-                    controller?.let { if (it.isPlaying) it.pause() else it.play() }
-                }) { Text(if (sonando) "Pausa" else "Play") }
-                TextButton(onClick = { expandida = !expandida }) {
-                    Text(if (expandida) "▼" else "▲")
+                if (!expandida) {
+                    IconButton(onClick = alternarPlay) {
+                        Icon(
+                            imageVector = if (sonando) Iconos.Pausa else Iconos.Play,
+                            contentDescription = if (sonando) "Pausar" else "Reproducir"
+                        )
+                    }
+                }
+                IconButton(onClick = { expandida = !expandida }) {
+                    Icon(
+                        imageVector = if (expandida) Iconos.Bajar else Iconos.Subir,
+                        contentDescription = if (expandida) "Contraer" else "Expandir"
+                    )
                 }
             }
 
-            // Parte desplegada
+            // ----- Parte desplegada -----
             if (expandida) {
-                Slider(
-                    value = if (arrastrando) valorArrastre else posicion.toFloat().coerceIn(0f, maximo),
-                    onValueChange = {
-                        arrastrando = true
-                        valorArrastre = it
-                    },
-                    onValueChangeFinished = {
-                        controller?.seekTo(valorArrastre.toLong())
-                        posicion = valorArrastre.toLong()
-                        arrastrando = false
-                    },
-                    valueRange = 0f..maximo
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        formatearDuracion(if (arrastrando) valorArrastre.toLong() else posicion),
-                        style = MaterialTheme.typography.bodySmall
+                Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp)) {
+                    Slider(
+                        value = if (arrastrando) valorArrastre else posicion.toFloat().coerceIn(0f, maximo),
+                        onValueChange = {
+                            arrastrando = true
+                            valorArrastre = it
+                        },
+                        onValueChangeFinished = {
+                            controller?.seekTo(valorArrastre.toLong())
+                            posicion = valorArrastre.toLong()
+                            arrastrando = false
+                        },
+                        valueRange = 0f..maximo
                     )
-                    Text(formatearDuracion(duracion), style = MaterialTheme.typography.bodySmall)
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    TextButton(onClick = { controller?.seekToPrevious() }) { Text("Anterior") }
-                    TextButton(onClick = { controller?.seekToNext() }) { Text("Siguiente") }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    TextButton(onClick = {
-                        controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
-                    }) { Text(if (aleatorio) "Aleatorio: sí" else "Aleatorio: no") }
-
-                    TextButton(onClick = {
-                        controller?.let {
-                            it.repeatMode = when (it.repeatMode) {
-                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                else -> Player.REPEAT_MODE_OFF
-                            }
-                        }
-                    }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
                         Text(
-                            when (repetir) {
-                                Player.REPEAT_MODE_ALL -> "Repetir: todo"
-                                Player.REPEAT_MODE_ONE -> "Repetir: una"
-                                else -> "Repetir: no"
-                            }
+                            formatearDuracion(if (arrastrando) valorArrastre.toLong() else posicion),
+                            style = MaterialTheme.typography.bodySmall
                         )
+                        Text(formatearDuracion(duracion), style = MaterialTheme.typography.bodySmall)
                     }
-                    TextButton(onClick = {
-                        controller?.let {
-                            it.repeatMode = when (it.repeatMode) {
-                                Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
-                                Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
-                                else -> Player.REPEAT_MODE_OFF
-                            }
-                        }
-                    }) {
-                        Text(
-                            when (repetir) {
-                                Player.REPEAT_MODE_ALL -> "Repetir: todo"
-                                Player.REPEAT_MODE_ONE -> "Repetir: una"
-                                else -> "Repetir: no"
-                            }
-                        )
-                    }
-                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    TextButton(onClick = onLetra) { Text("Letra") }
-                    BotonTemporizador()
+                    // Aleatorio, anterior, play/pausa, siguiente, repetir
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            controller?.let { it.shuffleModeEnabled = !it.shuffleModeEnabled }
+                        }) {
+                            Icon(
+                                imageVector = Iconos.Aleatorio,
+                                contentDescription = if (aleatorio) "Aleatorio activado" else "Aleatorio desactivado",
+                                tint = if (aleatorio) activo else apagado
+                            )
+                        }
+                        IconButton(onClick = { controller?.seekToPrevious() }) {
+                            Icon(Iconos.Anterior, contentDescription = "Anterior")
+                        }
+                        FilledIconButton(
+                            onClick = alternarPlay,
+                            modifier = Modifier.size(56.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (sonando) Iconos.Pausa else Iconos.Play,
+                                contentDescription = if (sonando) "Pausar" else "Reproducir",
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        IconButton(onClick = { controller?.seekToNext() }) {
+                            Icon(Iconos.Siguiente, contentDescription = "Siguiente")
+                        }
+                        IconButton(onClick = {
+                            controller?.let {
+                                it.repeatMode = when (it.repeatMode) {
+                                    Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+                                    Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+                                    else -> Player.REPEAT_MODE_OFF
+                                }
+                            }
+                        }) {
+                            Icon(
+                                imageVector = if (repetir == Player.REPEAT_MODE_ONE) Iconos.RepetirUna else Iconos.Repetir,
+                                contentDescription = when (repetir) {
+                                    Player.REPEAT_MODE_ALL -> "Repetir todo"
+                                    Player.REPEAT_MODE_ONE -> "Repetir una"
+                                    else -> "Repetir desactivado"
+                                },
+                                tint = if (repetir == Player.REPEAT_MODE_OFF) apagado else activo
+                            )
+                        }
+                    }
+
+                    // Letra / Temporizador
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        TextButton(onClick = onLetra) { Text("Letra") }
+                        BotonTemporizador()
+                    }
                 }
             }
         }

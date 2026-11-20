@@ -49,7 +49,7 @@ fun formatearDuracion(ms: Long): String {
     return "%d:%02d".format(totalSegundos / 60, totalSegundos % 60)
 }
 
-fun cargarCanciones(context: Context): List<Song> {
+fun cargarCanciones(context: Context, minimoMs: Long = 30_000L): List<Song> {
     val lista = mutableListOf<Song>()
     val coleccion = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
 
@@ -59,7 +59,7 @@ fun cargarCanciones(context: Context): List<Song> {
         MediaStore.Audio.Media.ARTIST,
         MediaStore.Audio.Media.DURATION
     )
-    val filtro = "${MediaStore.Audio.Media.DURATION} >= 30000"
+    val filtro = "${MediaStore.Audio.Media.DURATION} >= $minimoMs"
     val orden = "${MediaStore.Audio.Media.TITLE} COLLATE NOCASE ASC"
 
     context.contentResolver.query(coleccion, proyeccion, filtro, null, orden)?.use { cursor ->
