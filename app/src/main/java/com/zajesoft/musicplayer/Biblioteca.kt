@@ -6,16 +6,21 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import androidx.compose.runtime.Immutable
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaController
 
+// @Immutable: le dice a Compose que una canción no cambia, así reutiliza las filas
+@Immutable
 data class Song(
     val id: Long,
     val title: String,
     val artist: String,
     val durationMs: Long,
-    val uri: Uri
+    val uri: Uri,
+    // "Artista · 3:45", calculado una sola vez al cargar la biblioteca
+    val detalle: String = ""
 )
 
 val permisoAudio =
@@ -44,9 +49,14 @@ fun reproducirCola(controller: MediaController?, cola: List<Song>, indice: Int) 
     controller.play()
 }
 
+// 3:45 o, si pasa de una hora, 1:19:57
 fun formatearDuracion(ms: Long): String {
-    val totalSegundos = ms / 1000
-    return "%d:%02d".format(totalSegundos / 60, totalSegundos % 60)
+    val total = ms / 1000
+    val horas = total / 3600
+    val minutos = (total % 3600) / 60
+    val segundos = total % 60
+    return if (horas > 0) "%d:%02d:%02d".format(horas, minutos, segundos)
+    else "%d:%02d".format(minutos, segundos)
 }
 
 fun cargarCanciones(context: Context, minimoMs: Long = 30_000L): List<Song> {
@@ -70,14 +80,20 @@ fun cargarCanciones(context: Context, minimoMs: Long = 30_000L): List<Song> {
 
         while (cursor.moveToNext()) {
             val id = cursor.getLong(colId)
-            val artista = cursor.getString(colArtista)
+            val artistaCrudo = cursor.getString(colArtista)
+            val artista =
+                if (artistaCrudo == null || artistaCrudo == "<unknown>") "Artista desconocido"
+                else artistaCrudo
+            val duracion = cursor.getLong(colDuracion)
+
             lista.add(
                 Song(
                     id = id,
                     title = cursor.getString(colTitulo) ?: "Sin título",
-                    artist = if (artista == null || artista == "<unknown>") "Artista desconocido" else artista,
-                    durationMs = cursor.getLong(colDuracion),
-                    uri = ContentUris.withAppendedId(coleccion, id)
+                    artist = artista,
+                    durationMs = duracion,
+                    uri = ContentUris.withAppendedId(coleccion, id),
+                    detalle = "$artista · ${formatearDuracion(duracion)}"
                 )
             )
         }

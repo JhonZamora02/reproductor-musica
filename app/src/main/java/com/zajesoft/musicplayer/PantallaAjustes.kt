@@ -1,5 +1,6 @@
 package com.zajesoft.musicplayer
 
+import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -49,6 +51,7 @@ private fun FilaOpcion(texto: String, seleccionada: Boolean, onClick: () -> Unit
 @Composable
 fun PantallaAjustes() {
     val context = LocalContext.current
+    val actividad = context as? Activity
 
     val version = remember {
         try {
@@ -112,6 +115,41 @@ fun PantallaAjustes() {
                 seleccionada = Ajustes.duracionMinimaSeg == segundos,
                 onClick = { Ajustes.ponerDuracionMinima(context, segundos) }
             )
+        }
+
+        // Solo se muestra si hay algo que ofrecer en esta versión
+        if (Anuncios.opcionesPrivacidad || Anuncios.esDebug(context)) {
+            Seccion("Anuncios")
+
+            // Obligatorio en las regiones donde la ley exige poder cambiar el consentimiento
+            if (Anuncios.opcionesPrivacidad) {
+                TextButton(onClick = { actividad?.let { Anuncios.mostrarOpcionesPrivacidad(it) } }) {
+                    Text("Privacidad de anuncios")
+                }
+            }
+
+            // Herramienta de pruebas: no existe en la versión que publicarás
+            if (Anuncios.esDebug(context)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Simular versión sin anuncios")
+                        Text(
+                            "Solo visible en pruebas",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                    Switch(
+                        checked = Anuncios.sinAnuncios,
+                        onCheckedChange = { valor ->
+                            actividad?.let { Anuncios.ponerSinAnuncios(it, valor) }
+                        }
+                    )
+                }
+            }
         }
 
         Seccion("Acerca de")

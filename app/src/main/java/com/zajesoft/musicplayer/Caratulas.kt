@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,19 +35,21 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 
-// La caché usa 1/16 de la memoria máxima de la app (entre 4 y 16 MB)
+// La caché usa 1/16 de la memoria máxima de la app (entre 6 y 20 MB)
 private fun tamanoCacheKb(): Int {
     val kb = (Runtime.getRuntime().maxMemory() / 1024 / 16).toInt()
-    return kb.coerceIn(4 * 1024, 16 * 1024)
+    return kb.coerceIn(6 * 1024, 20 * 1024)
 }
 
 object Caratulas {
-    private const val TAMANO_PX = 144
+    // 96 px bastan para una miniatura de 48 dp y pesan 2,25 veces menos que 144 px
+    private const val TAMANO_PX = 96
 
     private val cache = object : LruCache<Long, Bitmap>(tamanoCacheKb()) {
         override fun sizeOf(key: Long, value: Bitmap): Int =
@@ -138,8 +141,15 @@ object Caratulas {
     }
 }
 
+// permitirCarga: en las listas es "la lista no se está moviendo".
+// Mientras sea falso, la fila muestra la notita y no pide la imagen.
 @Composable
-fun Caratula(cancion: Song, tamano: Dp, modifier: Modifier = Modifier) {
+fun Caratula(
+    cancion: Song,
+    tamano: Dp,
+    modifier: Modifier = Modifier,
+    permitirCarga: () -> Boolean = { true }
+) {
     val context = LocalContext.current
     var imagen by remember(cancion.id) {
         mutableStateOf(Caratulas.enCache(cancion.id)?.asImageBitmap())
@@ -147,8 +157,9 @@ fun Caratula(cancion: Song, tamano: Dp, modifier: Modifier = Modifier) {
 
     LaunchedEffect(cancion.id) {
         if (imagen == null && !Caratulas.sabidaSinCaratula(cancion.id)) {
-            // Si la fila sale de pantalla en este instante (scroll rápido), se cancela sin cargar
-            delay(150)
+            // Espera a que la lista deje de moverse, y un instante más
+            snapshotFlow { permitirCarga() }.first { it }
+            delay(120)
             imagen = Caratulas.cargar(context, cancion)?.asImageBitmap()
         }
     }
