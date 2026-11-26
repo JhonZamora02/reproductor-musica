@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "com.zajesoft.musicplayer"
+    namespace = "com.zajeapps.musicplayer"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "com.zajesoft.musicplayer"
+        applicationId = "com.zajeapps.musicplayer"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
@@ -60,4 +60,5 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation("com.google.android.gms:play-services-ads:25.5.0")
     implementation("com.google.android.ump:user-messaging-platform:4.0.0")
+    implementation("androidx.media3:media3-transformer:1.8.0")
 }
